@@ -18,6 +18,7 @@ import {
   RecognitionResultResponse,
   RecognitionStatusResponse,
   ChannelsCount,
+  SpeakerSeparationOptions,
 } from './types';
 import { Scope, AudioEncoding } from './enums';
 
@@ -84,7 +85,7 @@ export class SberSaluteSpeechRecognitionService
   ): Promise<FileUploadResponse> {
     const { access_token } = await this.getAccessToken();
     const audioFile = fs.createReadStream(audioFilePath);
-    const response = await axios.request({
+    const response = await axios.request<FileUploadResponse>({
       method: 'post',
       maxBodyLength: Infinity,
       url: `${SPEECH_BASE_URL}/data:upload`,
@@ -97,14 +98,16 @@ export class SberSaluteSpeechRecognitionService
         rejectUnauthorized: false,
       }),
     });
-    return response.data as FileUploadResponse;
+
+    return response.data;
   }
 
   private async startRecognition(
     uploadedFile: FileUploadResponse,
     fileMetadata: IAudioMetadata,
     encoding: AudioEncoding,
-    channels_count?: ChannelsCount
+    channels_count?: ChannelsCount,
+    speakerSeparationOptions?: SpeakerSeparationOptions,
   ): Promise<RecognitionResponse> {
     const data = JSON.stringify({
       options: {
@@ -114,13 +117,14 @@ export class SberSaluteSpeechRecognitionService
         channels_count: channels_count
           ? channels_count
           : fileMetadata.format.numberOfChannels,
+        speaker_separation_options: speakerSeparationOptions,
       },
       request_file_id: uploadedFile.result.request_file_id,
     });
 
     const { access_token } = await this.getAccessToken();
 
-    const response = await axios.request({
+    const response = await axios.request<RecognitionResponse>({
       method: 'post',
       maxBodyLength: Infinity,
       url: `${SPEECH_BASE_URL}/speech:async_recognize`,
@@ -133,7 +137,8 @@ export class SberSaluteSpeechRecognitionService
         rejectUnauthorized: false,
       }),
     });
-    return response.data as RecognitionResponse;
+
+    return response.data;
   }
 
   private async getRecognitionStatus(
@@ -141,7 +146,7 @@ export class SberSaluteSpeechRecognitionService
   ): Promise<RecognitionStatusResponse> {
     const { access_token } = await this.getAccessToken();
 
-    const response = await axios.request({
+    const response = await axios.request<RecognitionStatusResponse>({
       method: 'get',
       maxBodyLength: Infinity,
       url: `${SPEECH_BASE_URL}/task:get?id=${recognition.result.id}`,
@@ -152,7 +157,8 @@ export class SberSaluteSpeechRecognitionService
         rejectUnauthorized: false,
       }),
     });
-    return response.data as RecognitionStatusResponse;
+
+    return response.data;
   }
 
   private async getRecognitionResult(
@@ -160,7 +166,7 @@ export class SberSaluteSpeechRecognitionService
   ): Promise<RecognitionResultResponse> {
     const { access_token } = await this.getAccessToken();
 
-    const response = await axios.request({
+    const response = await axios.request<RecognitionResultResponse>({
       method: 'get',
       maxBodyLength: Infinity,
       url: `${SPEECH_BASE_URL}/data:download?response_file_id=${recognition.result.response_file_id}`,
@@ -172,7 +178,7 @@ export class SberSaluteSpeechRecognitionService
       }),
     });
 
-    return response.data as RecognitionResultResponse;
+    return response.data;
   }
 
   private async delay(ms: number) {
@@ -182,7 +188,8 @@ export class SberSaluteSpeechRecognitionService
   async speechToText(
     audioPath: string,
     encoding: AudioEncoding,
-    channels_count?: ChannelsCount
+    channels_count?: ChannelsCount,
+    speakerSeparationOptions?: SpeakerSeparationOptions,
   ): Promise<SpeechToTextResult> {
     const metadata = await parseFile(audioPath);
     const fileUploadResponse = await this.uploadFileForRecognition(audioPath);
@@ -190,7 +197,8 @@ export class SberSaluteSpeechRecognitionService
       fileUploadResponse,
       metadata,
       encoding,
-      channels_count
+      channels_count,
+      speakerSeparationOptions,
     );
 
     const startTime = Date.now();

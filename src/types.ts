@@ -45,3 +45,9 @@ export type SpeechToTextResult = {
 };
 
 export type ChannelsCount = 1 | 2;
+
+export type SpeakerSeparationOptions = {
+  enable?: boolean;
+  enable_only_main_speaker?: boolean;
+  count: 2;
+};
